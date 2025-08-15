@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIP Calculator</title>
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #1e3c72, #2a5298); /* Deep blue gradient */
+        text-align: center;
+        padding: 20px;
+        color: #333;
+    }
+    h1 {
+        color: white;
+        margin-bottom: 20px;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.2);
+    }
+    .calculator {
+        background: white;
+        max-width: 550px;
+        margin: auto;
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    label {
+        font-weight: bold;
+        display: block;
+        margin: 15px 0 5px;
+    }
+    input[type=range] {
+        width: 100%;
+        accent-color: #0077b6;
+    }
+    .value {
+        font-weight: bold;
+        color: #0077b6;
+    }
+    table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 10px;
+        text-align: center;
+    }
+    th {
+        background: #0077b6;
+        color: white;
+    }
+    tr:nth-child(even) {
+        background: #f0f9ff;
+    }
+    tr:nth-child(odd) {
+        background: #e1f5fe;
+    }
+    canvas {
+        margin-top: 20px;
+    }
+</style>
+</head>
+<body>
+    <h1>💹 SIP Calculator</h1>
+    <div class="calculator">
+        <label>Monthly Investment (₹): <span id="monthlyValue" class="value">5000</span></label>
+        <input type="range" id="monthly" min="1000" max="100000" value="5000" step="500">
+
+        <label>Expected Annual Return (%): <span id="rateValue" class="value">12</span></label>
+        <input type="range" id="rate" min="1" max="30" value="12" step="0.5">
+
+        <label>Investment Duration (Years): <span id="yearsValue" class="value">10</span></label>
+        <input type="range" id="years" min="1" max="40" value="10">
+
+        <canvas id="sipChart" width="300" height="300"></canvas>
+        <div id="resultTable"></div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const monthly = document.getElementById("monthly");
+    const rate = document.getElementById("rate");
+    const years = document.getElementById("years");
+
+    const monthlyValue = document.getElementById("monthlyValue");
+    const rateValue = document.getElementById("rateValue");
+    const yearsValue = document.getElementById("yearsValue");
+
+    let sipChart;
+
+    function calculateSIP() {
+        let p = parseFloat(monthly.value);
+        let r = parseFloat(rate.value) / 100 / 12;
+        let n = parseFloat(years.value) * 12;
+
+        let maturityValue = p * ((Math.pow(1 + r, n) - 1) / r) * (1 + r);
+        let investedAmount = p * n;
+        let gain = maturityValue - investedAmount;
+
+        // Table
+        document.getElementById("resultTable").innerHTML = `
+            <table>
+                <tr><th>Invested Amount</th><td>₹${investedAmount.toLocaleString()}</td></tr>
+                <tr><th>Estimated Returns</th><td>₹${gain.toLocaleString()}</td></tr>
+                <tr><th>Maturity Value</th><td>₹${maturityValue.toLocaleString()}</td></tr>
+            </table>
+        `;
+
+        // Chart
+        const ctx = document.getElementById('sipChart').getContext('2d');
+        if (sipChart) sipChart.destroy();
+
+        sipChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Invested Amount', 'Returns'],
+                datasets: [{
+                    data: [investedAmount, gain],
+                    backgroundColor: ['#0077b6', '#ffb703'],
+                    hoverBackgroundColor: ['#023e8a', '#fb8500'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `₹${context.raw.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                cutout: '70%'
+            },
+            plugins: [{
+                id: 'centerText',
+                beforeDraw: (chart) => {
+                    const { ctx, chartArea: { width, height } } = chart;
+                    ctx.save();
+                    ctx.font = 'bold 18px Segoe UI';
+                    ctx.fillStyle = '#333';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(`₹${Math.round(maturityValue).toLocaleString()}`, width / 2, height / 2);
+                    ctx.font = '12px Segoe UI';
+                    ctx.fillStyle = '#777';
+                    ctx.fillText('Maturity Value', width / 2, height / 2 + 20);
+                }
+            }]
+        });
+    }
+
+    [monthly, rate, years].forEach(input => {
+        input.addEventListener("input", () => {
+            monthlyValue.textContent = monthly.value;
+            rateValue.textContent = rate.value;
+            yearsValue.textContent = years.value;
+            calculateSIP();
+        });
+    });
+
+    calculateSIP();
+</script>
+</body>
+</html>
